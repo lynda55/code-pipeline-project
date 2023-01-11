@@ -1,0 +1,26 @@
+version: 0.2
+phases:
+    install:
+      runtime-versions:
+        python: 3.9
+    pre_build:
+      commands:
+        - echo checking python version
+        - python3 --version
+        - echo installing cfn-lint
+        - pip3 install cfn-lint
+        - echo checking for the CFN LINT
+        - cfn-lint --vesrion
+    build:
+      commands:
+        - echo testing our template
+        - cfn-lint Webservertemplate.yaml
+        - echo Build started on `date`
+        - aws cloudformation package --template-file Webservertemplate.yaml --s3-bucket deploy-artifact-bucket --output-template-file outputTemplate.yaml
+    post_build:
+      commands:
+        - echo Build completed on `date`
+artifacts:
+    files:
+      - Webservertemplate.yaml
+      - outputTemplate.yaml

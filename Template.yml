@@ -3,7 +3,7 @@ Parameters:
   InstanceType:
     Description: EC2 instance type.
     Type: String
-    Default: t2.micro #test
+    Default: t2.micro 
   KeyName:
     Description: Name of an existing EC2 key pair for SSH access to the EC2 instance.
     Type: AWS::EC2::KeyPair::KeyName
