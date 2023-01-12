@@ -1,12 +1,12 @@
-
 Parameters:
   InstanceType:
     Description: EC2 instance type.
     Type: String
-    Default: t2.micro 
+    Default: t2.micro
   KeyName:
     Description: Name of an existing EC2 key pair for SSH access to the EC2 instance.
     Type: AWS::EC2::KeyPair::KeyName
+    Default: ansible-key
   SSHLocation:
     Description: The IP address range that can be used to SSH to the EC2 instances
     Type: String
@@ -18,7 +18,13 @@ Parameters:
   ImageId:
     Type: AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>
     Default: /aws/service/ami-amazon-linux-latest/amzn2-ami-hvm-x86_64-gp2
-
+  EnvironmentType:
+    Description: 'Specify the Environment type of the stack.'
+    Type:
+    AllowedValues:
+      - Test
+      - Prod
+    ConstraintDescription: 'Specify either Test Prod Prep or Ptest.'
 Resources:
   WebServer:
     Type: AWS::EC2::Instance
@@ -28,6 +34,9 @@ Resources:
       KeyName: !Ref KeyName
       SecurityGroups:
         - !Ref WebServerSecurityGroup
+      # Tags:
+      #   - Key: Name
+      #     Value:
       UserData:
         Fn::Base64: !Sub |
           #!/bin/bash
@@ -35,23 +44,32 @@ Resources:
           yum install -y httpd
           systemctl start httpd
           systemctl enable httpd
-          echo "<html><body><h1>Hello World in ${AWS::Region}<h1></body></html>" > /var/www/html/index.html
-
+          echo "<html><body><h1>Hello World this is ${EnvironmentType} Environment in ${AWS::Region}<h1></body></html>" > /var/www/html/index.html
   WebServerSecurityGroup: #security group ID
     Type: AWS::EC2::SecurityGroup
     Properties:
       GroupDescription: 'Enable HTTP access via port 80 SSH access'
       SecurityGroupIngress:
-        - CidrIp: 0.0.0.0/0
+        - CidrIp: !Ref SSHLocation
           FromPort: '80'
           IpProtocol: tcp
           ToPort: '80'
-        - CidrIp: !Ref SSHLocation
+        - CidrIp: '71.105.134.61/32'
           FromPort: '22'
           IpProtocol: tcp
           ToPort: '22'
-
+# Mappings:
+#   EnvironmentToRegion: # Map Name
+#     us-east-1:
+#       Env: Test
+#     us-west-1:   # Second level key 
+#       Env: Prod
+# Outputs:
+#   InstanceId:
+#     Description: InstanceId of the newly created EC2 instance
+#     Value: !GetAtt WebServer.PublicIp # return the ip addr
 Outputs:
-  InstanceId:
-    Description: InstanceId of the newly created EC2 instance
-    Value: !GetAtt WebServer.PublicIp # return the ip addr
+  EC2PublicDNS:
+    Description: 'Public DNS of EC2 instance'
+    Value: !Sub "http://${WebServer.PublicDnsName}"
+
